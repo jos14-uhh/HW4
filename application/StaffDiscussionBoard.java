@@ -13,8 +13,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * StaffDiscussionBoard - Private discussion board for staff members only
- * Allows staff to coordinate, share insights, and discuss student issues privately
+ * StaffDiscussionBoard provides a private discussion board UI where staff members
+ * can create, view, and manage discussion posts. Posts are stored in the database
+ * and are visible only to staff and instructors.
+ *
+ * <p>This class offers basic CRUD-style behavior (create + read) exposed via a
+ * JavaFX interface. It is intended to support Staff-role user stories in HW4
+ * and can be extended to include edit/delete features and richer moderation tools.</p>
  */
 public class StaffDiscussionBoard {
     private final DatabaseHelper databaseHelper;
@@ -24,7 +29,7 @@ public class StaffDiscussionBoard {
     private TextArea contentArea;
 
     /**
-     * Data model for discussion posts
+     * Data model representing a single discussion post in the staff board.
      */
     public static class DiscussionPost {
         private final int id;
@@ -34,8 +39,18 @@ public class StaffDiscussionBoard {
         private final String content;
         private final String date;
 
-        public DiscussionPost(int id, String staffId, String staffName, 
-                            String title, String content, String date) {
+        /**
+         * Constructs a DiscussionPost model instance.
+         *
+         * @param id the unique identifier for the post
+         * @param staffId the staff member's id who authored the post
+         * @param staffName the staff member's display name
+         * @param title the post title
+         * @param content the full post content
+         * @param date the creation date/time as a string
+         */
+        public DiscussionPost(int id, String staffId, String staffName,
+                              String title, String content, String date) {
             this.id = id;
             this.staffId = staffId;
             this.staffName = staffName;
@@ -44,33 +59,80 @@ public class StaffDiscussionBoard {
             this.date = date;
         }
 
-        // Getters and property methods
+        /**
+         * @return the post id
+         */
         public int getId() { return id; }
+
+        /**
+         * @return the author staff id
+         */
         public String getStaffId() { return staffId; }
+
+        /**
+         * @return the author display name
+         */
         public String getStaffName() { return staffName; }
+
+        /**
+         * @return the post title
+         */
         public String getTitle() { return title; }
+
+        /**
+         * @return the post content
+         */
         public String getContent() { return content; }
+
+        /**
+         * @return the post creation date/time (string)
+         */
         public String getDate() { return date; }
 
-        public javafx.beans.property.StringProperty titleProperty() { 
-            return new javafx.beans.property.SimpleStringProperty(title); 
+        /**
+         * JavaFX property helper for the title column.
+         *
+         * @return property wrapping the title
+         */
+        public javafx.beans.property.StringProperty titleProperty() {
+            return new javafx.beans.property.SimpleStringProperty(title);
         }
-        public javafx.beans.property.StringProperty authorProperty() { 
-            return new javafx.beans.property.SimpleStringProperty(staffName); 
+
+        /**
+         * JavaFX property helper for the author column.
+         *
+         * @return property wrapping the author name
+         */
+        public javafx.beans.property.StringProperty authorProperty() {
+            return new javafx.beans.property.SimpleStringProperty(staffName);
         }
-        public javafx.beans.property.StringProperty dateProperty() { 
-            return new javafx.beans.property.SimpleStringProperty(date); 
+
+        /**
+         * JavaFX property helper for the date column.
+         *
+         * @return property wrapping the post date
+         */
+        public javafx.beans.property.StringProperty dateProperty() {
+            return new javafx.beans.property.SimpleStringProperty(date);
         }
     }
 
+    /**
+     * Constructs the StaffDiscussionBoard UI helper.
+     *
+     * @param databaseHelper the {@link DatabaseHelper} used to persist and read discussion posts
+     * @param staffUsername the username of the staff member currently using the board
+     */
     public StaffDiscussionBoard(DatabaseHelper databaseHelper, String staffUsername) {
         this.databaseHelper = databaseHelper;
         this.staffUsername = staffUsername;
     }
 
     /**
-     * Displays the staff discussion board
-     * @param primaryStage the primary application stage
+     * Shows the staff discussion board UI on the provided {@link Stage}.
+     * Builds the layout, initializes controls, and loads existing posts.
+     *
+     * @param primaryStage the main application stage on which to display the board
      */
     public void show(Stage primaryStage) {
         VBox mainLayout = new VBox(15);
@@ -83,7 +145,7 @@ public class StaffDiscussionBoard {
         // New Post Section
         VBox newPostSection = new VBox(10);
         newPostSection.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-padding: 15;");
-        
+
         Label newPostLabel = new Label("Create New Discussion Post");
         newPostLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
@@ -124,6 +186,10 @@ public class StaffDiscussionBoard {
         primaryStage.setTitle("Staff Discussion Board");
     }
 
+    /**
+     * Create and configure the discussion table columns.
+     * This method initializes {@link #discussionTable} and sets up cell factories.
+     */
     private void createDiscussionTable() {
         discussionTable = new TableView<>();
         discussionTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -144,14 +210,16 @@ public class StaffDiscussionBoard {
     }
 
     /**
-     * Creates a new discussion post
+     * Create a new discussion post from the contents of the UI fields.
+     * Validates input and persists the post via {@link DatabaseHelper#addStaffDiscussion}.
+     * Shows an alert on success or failure.
      */
     private void createNewPost() {
         String title = titleField.getText().trim();
         String content = contentArea.getText().trim();
 
         if (title.isEmpty() || content.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Missing Information", 
+            showAlert(Alert.AlertType.WARNING, "Missing Information",
                      "Please provide both title and content for your post.");
             return;
         }
@@ -159,29 +227,30 @@ public class StaffDiscussionBoard {
         try {
             boolean success = databaseHelper.addStaffDiscussion(staffUsername, title, content);
             if (success) {
-                showAlert(Alert.AlertType.INFORMATION, "Success", 
+                showAlert(Alert.AlertType.INFORMATION, "Success",
                          "Your discussion post has been added successfully.");
                 titleField.clear();
                 contentArea.clear();
                 refreshDiscussions();
             } else {
-                showAlert(Alert.AlertType.ERROR, "Error", 
+                showAlert(Alert.AlertType.ERROR, "Error",
                          "Failed to create discussion post. Please try again.");
             }
         } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", 
+            showAlert(Alert.AlertType.ERROR, "Database Error",
                      "Error creating post: " + e.getMessage());
         }
     }
 
     /**
-     * Refreshes the discussion table
+     * Reloads discussion posts from the database and updates the table.
+     * Any SQL errors are caught and reported to the user via an alert.
      */
     private void refreshDiscussions() {
         try {
             ObservableList<DiscussionPost> posts = FXCollections.observableArrayList();
             ResultSet rs = databaseHelper.getStaffDiscussions();
-            
+
             while (rs != null && rs.next()) {
                 DiscussionPost post = new DiscussionPost(
                     rs.getInt("id"),
@@ -193,22 +262,23 @@ public class StaffDiscussionBoard {
                 );
                 posts.add(post);
             }
-            
+
             discussionTable.setItems(posts);
-            
+
         } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", 
+            showAlert(Alert.AlertType.ERROR, "Database Error",
                      "Failed to load discussions: " + e.getMessage());
         }
     }
 
     /**
-     * Displays full content of selected discussion post
+     * Shows the full content of the currently selected discussion post in a new window.
+     * If no post is selected, a warning is shown.
      */
     private void viewFullPost() {
         DiscussionPost selected = discussionTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert(Alert.AlertType.WARNING, "No Selection", 
+            showAlert(Alert.AlertType.WARNING, "No Selection",
                      "Please select a discussion post to view.");
             return;
         }
@@ -229,6 +299,12 @@ public class StaffDiscussionBoard {
         detailsStage.show();
     }
 
+    /**
+     * Builds the formatted content string for a discussion post shown in the details view.
+     *
+     * @param post the {@link DiscussionPost} to format
+     * @return a human-readable formatted string representing the post details
+     */
     private String buildFullPostContent(DiscussionPost post) {
         return String.format(
             "Title: %s\nAuthor: %s\nDate: %s\n\n%s",
@@ -236,6 +312,13 @@ public class StaffDiscussionBoard {
         );
     }
 
+    /**
+     * Utility helper to show modal alerts to the user.
+     *
+     * @param type the type of the alert (information, warning, error, etc.)
+     * @param title the alert window title
+     * @param message the message body to show in the alert
+     */
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
