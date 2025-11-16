@@ -1,5 +1,4 @@
-# CSE360 Homework 4
-# By Joshua Magno
+# CSE360 Homework 4 by Joshua Magno
 
 ## Overview
  A comprehensive staff role management system for educational platforms, providing specialized tools for student support and instructor coordination.
@@ -11,6 +10,8 @@
 - Escalation Request System
  - Student Help Tools
 - Content Moderation
+
+  Javadoc is found in the index.html file
 
 ## Screencast:
 
